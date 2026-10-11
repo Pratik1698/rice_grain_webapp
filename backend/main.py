@@ -1,10 +1,13 @@
+
 """
 RiceVision API - FastAPI backend for rice grain quality classification.
 """
 
+import os
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
 
 from model_service import load_model, predict
 
@@ -15,17 +18,20 @@ from model_service import load_model, predict
 async def lifespan(app: FastAPI):
     """Load the TensorFlow model when the server starts."""
     print("[RiceVision API] Starting up — loading model...")
+
     try:
         load_model()
         print("[RiceVision API] Model ready for inference.")
     except FileNotFoundError as e:
         print(f"[RiceVision API] WARNING: {e}")
-        print("[RiceVision API] Server will start, but /predict will fail.")
+        print("[RiceVision API] Server will start, but /predict may fail.")
+
     yield
+
     print("[RiceVision API] Shutting down.")
 
 
-# ─── App ─────────────────────────────────────────────────────────────────────
+# ─── Create application ──────────────────────────────────────────────────────
 
 app = FastAPI(
     title="RiceVision API",
@@ -34,20 +40,25 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-import os
 
-# ─── CORS Configuration ───────────────────────────────────────────────────────
+# ─── CORS configuration ──────────────────────────────────────────────────────
 
 default_origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://rice-grain-webapp.vercel.app",
 ]
 
-# Support custom frontend origins via FRONTEND_ORIGIN (e.g. from Vercel)
+# Optional additional frontend origins, configured in Render as FRONTEND_ORIGIN.
+# Multiple origins can be separated by commas.
 frontend_origin_env = os.environ.get("FRONTEND_ORIGIN", "").strip()
+
 allowed_origins = list(default_origins)
+
 if frontend_origin_env:
     for origin in frontend_origin_env.split(","):
         cleaned = origin.strip().rstrip("/")
@@ -67,6 +78,7 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
+    """Return basic API information."""
     return {
         "service": "RiceVision API",
         "status": "running",
@@ -77,49 +89,82 @@ async def root():
 
 @app.get("/health")
 async def health():
+    """Health-check endpoint."""
     return {"status": "ok"}
 
 
 @app.post("/predict")
 async def predict_endpoint(file: UploadFile = File(...)):
     """
-    Accept an uploaded rice grain image and return the model's prediction.
-    
-    Supported formats: JPEG, PNG
-    The image is resized to 224×224 internally.
+    Accept a rice grain image and return its prediction.
+
+    Supported formats: JPEG and PNG.
+    The model service handles image preprocessing.
     """
-    # Validate file type
-    content_type = file.content_type or ""
+    content_type = (file.content_type or "").lower()
     filename = (file.filename or "").lower()
-    valid_content_types = ("image/jpeg", "image/png", "image/jpg", "application/octet-stream")
+
+    valid_content_types = {
+        "image/jpeg",
+        "image/png",
+        "image/jpg",
+        "application/octet-stream",
+    }
     valid_extensions = (".jpg", ".jpeg", ".png")
 
-    if content_type not in valid_content_types and not any(filename.endswith(ext) for ext in valid_extensions):
+    if (
+        content_type not in valid_content_types
+        and not filename.endswith(valid_extensions)
+    ):
         raise HTTPException(
             status_code=400,
-            detail=f"Unsupported file type: {file.content_type}. "
-                   "Please upload a JPEG or PNG image.",
+            detail=(
+                f"Unsupported file type: {file.content_type}. "
+                "Please upload a JPEG or PNG image."
+            ),
         )
 
     try:
         image_bytes = await file.read()
-        if len(image_bytes) == 0:
-            raise HTTPException(status_code=400, detail="Empty file uploaded.")
+
+        if not image_bytes:
+            raise HTTPException(
+                status_code=400,
+                detail="Empty file uploaded.",
+            )
 
         result = predict(image_bytes)
         return result
 
+    except HTTPException:
+        raise
+
     except FileNotFoundError as e:
-        raise HTTPException(status_code=503, detail=str(e))
+        raise HTTPException(
+            status_code=503,
+            detail=str(e),
+        ) from e
+
     except Exception as e:
+        print(f"[RiceVision API] Prediction error: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Inference failed: {str(e)}",
-        )
+        ) from e
 
+    finally:
+        await file.close()
+
+
+# ─── Run locally ─────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
 
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=port,
+        reload=True,
+    )

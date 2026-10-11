@@ -131,7 +131,7 @@ export default function PerformancePage() {
                     {m.name}
                   </td>
                   <td style={{ fontFamily: 'var(--font-mono)' }}>
-                    {m.accuracy.toFixed(2)}
+                    {m.accuracy.toFixed(2)}%
                   </td>
                   <td style={{ fontFamily: 'var(--font-mono)' }}>
                     {m.macroF1.toFixed(4)}
@@ -230,15 +230,14 @@ export default function PerformancePage() {
               inference time (15.64 ms/image).
             </ObservationItem>
             <ObservationItem>
-              EfficientNetB0 achieved 81.29% accuracy with 4.05M parameters,
-              offering a middle ground in terms of both performance and
-              computational requirements.
+              ResNet50 achieved 80.68% test accuracy with 23.60M parameters,
+              ranking second in classification performance among the evaluated
+              architectures.
             </ObservationItem>
             <ObservationItem>
-              ResNet50, despite having the most parameters (23.60M) and largest
-              model size (90.01 MB), yielded the lowest accuracy (79.07%) in
-              this experiment, suggesting that larger model capacity does not
-              automatically translate to better performance on this dataset.
+              EfficientNetB0 achieved 79.40% accuracy with 4.05M parameters,
+              ranking third among the evaluated architectures while maintaining
+              a compact 15.47 MB model size.
             </ObservationItem>
             <ObservationItem>
               Class weighting was used during training to address class

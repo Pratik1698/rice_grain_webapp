@@ -52,7 +52,8 @@ function chartOptions(title, unit = '', beginAtZero = true, suggestedMin = undef
       },
       tooltip: {
         callbacks: {
-          label: (ctx) => `${ctx.parsed.y}${unit}`,
+          label: (ctx) =>
+            `${typeof ctx.parsed.y === 'number' && unit === '%' ? ctx.parsed.y.toFixed(2) : ctx.parsed.y}${unit}`,
         },
       },
     },
@@ -148,7 +149,7 @@ export default function ComparisonPage() {
                     <span className="badge badge-gold ml-2 text-xs">Best</span>
                   )}
                 </td>
-                <td style={{ fontFamily: 'var(--font-mono)' }}>{m.accuracy.toFixed(2)}</td>
+                <td style={{ fontFamily: 'var(--font-mono)' }}>{m.accuracy.toFixed(2)}%</td>
                 <td style={{ fontFamily: 'var(--font-mono)' }}>{m.macroF1.toFixed(4)}</td>
                 <td style={{ fontFamily: 'var(--font-mono)' }}>{m.parametersFormatted}</td>
                 <td style={{ fontFamily: 'var(--font-mono)' }}>{m.modelSizeMB} MB</td>

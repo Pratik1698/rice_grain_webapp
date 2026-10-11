@@ -18,22 +18,9 @@ export const MODELS = [
       'A lightweight, efficient architecture designed for mobile and edge deployment. Uses depthwise separable convolutions to reduce computational cost.',
   },
   {
-    id: 'efficientnetb0',
-    name: 'EfficientNetB0',
-    accuracy: 81.29,
-    macroF1: 0.8301,
-    parameters: 4_054_695,
-    parametersFormatted: '4.05M',
-    modelSizeMB: 15.47,
-    inferenceTimeMs: 19.76,
-    highlight: false,
-    description:
-      'Uses compound scaling to balance network depth, width, and resolution for improved efficiency.',
-  },
-  {
     id: 'resnet50',
     name: 'ResNet50',
-    accuracy: 79.07,
+    accuracy: 80.68,
     macroF1: 0.7906,
     parameters: 23_595_908,
     parametersFormatted: '23.60M',
@@ -42,6 +29,19 @@ export const MODELS = [
     highlight: false,
     description:
       'A deep residual network with skip connections. Larger and more computationally intensive but widely used as a benchmark architecture.',
+  },
+  {
+    id: 'efficientnetb0',
+    name: 'EfficientNetB0',
+    accuracy: 79.40,
+    macroF1: 0.8301,
+    parameters: 4_054_695,
+    parametersFormatted: '4.05M',
+    modelSizeMB: 15.47,
+    inferenceTimeMs: 19.76,
+    highlight: false,
+    description:
+      'Uses compound scaling to balance network depth, width, and resolution for improved efficiency.',
   },
 ];
 

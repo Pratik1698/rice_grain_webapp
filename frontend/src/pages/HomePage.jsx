@@ -246,7 +246,7 @@ export default function HomePage() {
                 <div className="flex justify-between items-baseline">
                   <span className="text-sm text-earth-500">Accuracy</span>
                   <span className="font-semibold text-earth-800">
-                    {model.accuracy}%
+                    {model.accuracy.toFixed(2)}%
                   </span>
                 </div>
                 <div className="flex justify-between items-baseline">

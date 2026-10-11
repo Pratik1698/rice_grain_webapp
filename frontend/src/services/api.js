@@ -1,45 +1,94 @@
+
 /**
- * RiceVision API Service
+ * RiceVision API service
  * Communicates with the FastAPI backend for rice grain classification.
  */
 
-/**
- * In production (Vercel): Set VITE_API_URL (e.g. https://ricevision-api.onrender.com)
- * In local development: Falls back to '/api' (handled by Vite proxy to http://localhost:8000)
- */
 const envUrl = import.meta.env.VITE_API_URL;
-const API_BASE = envUrl ? envUrl.replace(/\/+$/, '') : '/api';
+
+const API_BASE = envUrl
+  ? envUrl.replace(/\/+$/, '')
+  : '/api';
+
+// Debug: verify which API URL the frontend is using
+console.log('RiceVision API URL:', API_BASE);
 
 /**
  * Send an image to the backend for grain classification.
  * @param {File} imageFile - The image file to classify
- * @returns {Promise<Object>} - Prediction result
+ * @returns {Promise<Object>} Prediction result
  */
 export async function predictGrain(imageFile) {
+  if (!imageFile) {
+    throw new Error('Please select a rice grain image.');
+  }
+
   const formData = new FormData();
   formData.append('file', imageFile);
 
-  const response = await fetch(`${API_BASE}/predict`, {
-    method: 'POST',
-    body: formData,
-  });
+  let response;
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-    throw new Error(error.detail || `Server error: ${response.status}`);
+  try {
+    response = await fetch(`${API_BASE}/predict`, {
+      method: 'POST',
+      body: formData,
+    });
+  } catch (error) {
+    console.error('Prediction request failed:', error);
+
+    throw new Error(
+      `Cannot connect to RiceVision API at ${API_BASE}.`
+    );
   }
 
-  return response.json();
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(
+      data?.detail ||
+      data?.error ||
+      `Prediction failed (HTTP ${response.status}).`
+    );
+  }
+
+  if (!data || !data.predicted_class) {
+    console.error('Unexpected API response:', data);
+
+    throw new Error(
+      'The API returned an unexpected prediction response.'
+    );
+  }
+
+  console.log('Prediction result:', data);
+
+  return data;
 }
 
 /**
- * Check if the backend is running and healthy.
- * @returns {Promise<Object>}
+ * Check whether the backend is reachable.
+ * @returns {Promise<Object>} Health response
  */
 export async function checkHealth() {
-  const response = await fetch(`${API_BASE}/health`);
-  if (!response.ok) {
-    throw new Error('Backend is not reachable');
+  let response;
+
+  try {
+    response = await fetch(`${API_BASE}/health`);
+  } catch (error) {
+    console.error('Health check request failed:', error);
+
+    throw new Error(
+      `Cannot connect to the RiceVision API at ${API_BASE}.`
+    );
   }
-  return response.json();
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(
+      data?.detail ||
+      `Health check failed (HTTP ${response.status}).`
+    );
+  }
+
+  return data;
 }
